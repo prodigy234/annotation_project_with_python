@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Annotation Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/4.6.0/fabric.min.js"></script>
+</head>
+<body>
+    <h2>Image Annotation Tool</h2>
+    <select id="taskSelector" onchange="loadImage()"></select>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <button onclick="saveAnnotation()">Save Annotation</button>
+
+    <script>
+        const canvas = new fabric.Canvas('canvas');
+
+        // Fetch tasks (images) from the server
+        fetch('/get-tasks')
+            .then(response => response.json())
+            .then(tasks => {
+                const selector = document.getElementById('taskSelector');
+                tasks.forEach(task => {
+                    const option = document.createElement('option');
+                    option.value = task.id;
+                    option.text = task.image_url;
+                    selector.appendChild(option);
+                });
+                loadImage();
+            });
+
+        // Load selected image onto the canvas
+        function loadImage() {
+            const taskSelector = document.getElementById('taskSelector');
+            const imageUrl = taskSelector.options[taskSelector.selectedIndex].text;
+
+            fabric.Image.fromURL(imageUrl, function (img) {
+                canvas.clear();
+                canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+            });
+        }
+
+        // Save annotations to the server
+        function saveAnnotation() {
+            const taskId = document.getElementById('taskSelector').value;
+            const annotationData = JSON.stringify(canvas.toJSON());
+
+            fetch('/save-annotation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ task_id: taskId, annotation_data: annotationData })
+            })
+            .then(response => response.json())
+            .then(data => alert(data.message));
+        }
+    </script>
+</body>
+</html>
